@@ -6,7 +6,9 @@ Add 'dtoverlay=dwc2' to config.txt file (serial_USB.py). Add 'modules-load=g_ser
 To have commands run on startup: edit /etc/rc.local file. Add command (ex: 'python /path/to/code/serial_BT.py') right before the ending line. Ensure a new line between added code and end of flie statement.  
 
 # Total libraries needed
-pyserial, tkinter, time
+pip install pyserial
+pip install serial
+pip install tk
 
 # serial_BT.py
 Code to send Bluetooth data  
