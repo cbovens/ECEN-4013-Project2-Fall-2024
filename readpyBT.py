@@ -27,13 +27,13 @@ for p in ports:
 ) = [0] * 13
 
 # Define the COM port and baud rate
-com_port = 'COM5'  # Replace with your COM port
+com_port = 'COM3'  # Replace with your COM port
 baud_rate = 9600   # Default baud rate for HC-06
 
 # Create a window
 window = tk.Tk()
 window.title("Live Variable Values")
-window.geometry("400x400")
+window.geometry("400x500")
 
 # Define variables to display
 variables = {
@@ -89,29 +89,30 @@ def update_values():
     if ser and ser.in_waiting > 0:
         try:
             data = ser.readline().decode('utf-8').strip()
-            print(f"Received Data: {data}")
+            print(f"Received Data: {data}\r", end = "")
             # Parse the space-separated data
             values = list(map(float, data.split()))
             if len(values) == 13:
                 (
-                    longVal, latVal, heightVal, axVal, ayVal, azVal,
-                    satVal, gxVal, gyVal, gzVal, mxVal, myVal, mzVal
+                    longVal, latVal, heightVal, satVal, axVal, ayVal, azVal,
+                    gxVal, gyVal, gzVal, mxVal, myVal, mzVal
                 ) = values
                 
                 # Update GUI variables
-                variables["Longitude"].set(f"Longitude: {longVal:.6f}")
-                variables["Latitude"].set(f"Latitude: {latVal:.6f}")
-                variables["Height"].set(f"Height: {heightVal:.6f}")
-                variables["Sat"].set(f"Sat: {satVal}")
-                variables["Ax"].set(f"Ax: {axVal:.6f}")
-                variables["Ay"].set(f"Ay: {ayVal:.6f}")
-                variables["Az"].set(f"Az: {azVal:.6f}")
-                variables["Gx"].set(f"Gx: {gxVal:.6f}")
-                variables["Gy"].set(f"Gy: {gyVal:.6f}")
-                variables["Gz"].set(f"Gz: {gzVal:.6f}")
-                variables["Mx"].set(f"Mx: {mxVal:.6f}")
-                variables["My"].set(f"My: {myVal:.6f}")
-                variables["Mz"].set(f"Mz: {mzVal:.6f}")
+                if displaying:
+                    variables["Longitude"].set(f"Longitude: {longVal:.6f}")
+                    variables["Latitude"].set(f"Latitude: {latVal:.6f}")
+                    variables["Height"].set(f"Height: {heightVal:.6f}")
+                    variables["Sat"].set(f"Sat: {satVal}")
+                    variables["Ax"].set(f"Ax: {axVal:.6f}")
+                    variables["Ay"].set(f"Ay: {ayVal:.6f}")
+                    variables["Az"].set(f"Az: {azVal:.6f}")
+                    variables["Gx"].set(f"Gx: {gxVal:.6f}")
+                    variables["Gy"].set(f"Gy: {gyVal:.6f}")
+                    variables["Gz"].set(f"Gz: {gzVal:.6f}")
+                    variables["Mx"].set(f"Mx: {mxVal:.6f}")
+                    variables["My"].set(f"My: {myVal:.6f}")
+                    variables["Mz"].set(f"Mz: {mzVal:.6f}")
             else:
                 print(f"Invalid data length: {len(values)} (expected 13)")
         except (ValueError, UnicodeDecodeError) as e:

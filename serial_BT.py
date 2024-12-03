@@ -30,9 +30,18 @@ ser = serial.Serial(uart_port, baud_rate)
 pi = pigpio.pi()
 pi.bb_serial_read_open(SOFT_UART_RX, BAUD_RATE)  # Open RX pin for reading
 
+def nmea_to_decimal(coord, direction):
+    if coord == '':
+        return 'No Data'
+    try:
+        degrees = float(coord[:2])
+        minutes = float(coord[2:]) / 60
+        decimal = degrees + minutes
+        return decimal if direction in ['N', 'E'] else -decimal
+    except ValueError:
+        return 'No Data'
 
 # Write the message to the UART
-count = 0
 long =  0
 height = 0
 ay = 0
@@ -48,11 +57,25 @@ my= 0
 mz= 0
 try:
     while (True):
-        count = count + 1
-        long = 0
-        height = 0
-        lat = 0
-        sat = 0
+        (count, data) = pi.bb_serial_read(SOFT_UART_RX)
+        if count > 0:
+            # Decode and process GPS data (NMEA sentences)
+            nmea_data = data.decode('ascii', errors='ignore').splitlines()
+            for line in nmea_data:
+
+                if line.startswith("$GPGGA"):  # Parse GGA sentences
+                    parts = line.split(',')
+                    #print(parts)
+                    if len(parts) >= 10:
+                        lat = nmea_to_decimal(parts[2], parts[3])
+                        long = nmea_to_decimal(parts[4], parts[5])
+                        height = float(parts[9]) if parts[9] else 0
+
+                elif line.startswith("$GPGSV"):  # Parse GSV sentences for satellite data
+                    parts = line.split(',')
+                    #print(parts)
+                    if len(parts) > 3:
+                        sat = int(parts[3]) if parts[3] != '00*79' else 0 # Update the number of locked satellites
         ax = sensor.acceleration[0]
         ay = sensor.acceleration[1]
         az = sensor.acceleration[2]
@@ -65,7 +88,8 @@ try:
         time.sleep(0.5)
         # Message syntax each being 8 bytes:
         #   Longitude, Latitiude, Altitude, AccX, AccY, AccZ
-        message = "%8f %8f %8f %8f %8f %8f %8f %8f %8f %8f %8f %8f %8f\n" % (long,lat,height,sat,ax,ay,az,gx,gy,gz,mx,my,mz)
+        print(lat, long, height)
+        message = "%8f %8f %8f %8f %8f %8f %8f %8f %8f %8f %8f %8f %8f\n" % (long or 0, lat or 0, height or 0, sat or 0, ax or 0, ay or 0, az or 0, gx or 0, gy or 0, gz or 0, mx or 0, my or 0, mz or 0)
         ser.write(message.encode('utf-8'))
         long2 = "%08f\r" % (long)
         #print(type(long), type(lat), type(height), type(sat), type(ax), type(ay), type(az), type(gx), type(gy), type(gz), type(mx), type(my), type(mz))
