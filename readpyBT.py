@@ -20,12 +20,11 @@ ports = list(port_list.comports())
 for p in ports:
     print(p)
 
-longVal = 0
-latVal = 0
-heightVal = 0
-axVal = 0
-ayVal = 0
-azVal = 0
+# Initialize variables
+(
+    longVal, latVal, heightVal, axVal, ayVal, azVal,
+    satVal, gxVal, gyVal, gzVal, mxVal, myVal, mzVal
+) = [0] * 13
 
 # Define the COM port and baud rate
 com_port = 'COM5'  # Replace with your COM port
@@ -34,26 +33,36 @@ baud_rate = 9600   # Default baud rate for HC-06
 # Create a window
 window = tk.Tk()
 window.title("Live Variable Values")
-window.geometry("244x244")
+window.geometry("400x400")
 
 # Define variables to display
-lat = tk.StringVar()
-long = tk.StringVar()
-height = tk.StringVar()
-ax = tk.StringVar()
-ay = tk.StringVar()
-az = tk.StringVar()
+variables = {
+    "Latitude": tk.StringVar(),
+    "Longitude": tk.StringVar(),
+    "Height": tk.StringVar(),
+    "Sat": tk.StringVar(),
+    "Ax": tk.StringVar(),
+    "Ay": tk.StringVar(),
+    "Az": tk.StringVar(),
+    "Gx": tk.StringVar(),
+    "Gy": tk.StringVar(),
+    "Gz": tk.StringVar(),
+    "Mx": tk.StringVar(),
+    "My": tk.StringVar(),
+    "Mz": tk.StringVar(),
+}
 
-# Initialize variables with default values
-lat.set("Latitude: N/A")
-long.set("Longitude: N/A")
-height.set("Height: N/A")
-ax.set("Ax: N/A")
-ay.set("Ay: N/A")
-az.set("Az: N/A")
+# Initialize GUI variables
+for key in variables:
+    variables[key].set(f"{key}: N/A")
 
 # Create a serial connection
-ser = serial.Serial(com_port, baud_rate)
+try:
+    ser = serial.Serial(com_port, baud_rate, timeout=1)
+    print(f"Connected to {com_port}")
+except serial.SerialException as e:
+    print(f"Error: {e}")
+    ser = None
 
 # Flag to control displaying
 displaying = False
@@ -70,71 +79,62 @@ def stop_displaying():
 
 # Function to close window
 def close_window():
+    if ser:
+        ser.close()
     window.destroy()
-
 
 # Function to read and update serial data
 def update_values():
-    value_length = 9
-    global longVal, latVal, heightVal, axVal, ayVal, azVal, displaying
-    while ser.in_waiting >= 0:
-        data = ser.readline().decode('utf-8').strip()
-        print(f"\rReceived Data: {data}")
-        if len(data) >= 53:
-            # Slice the data into 6 parts
-            values = [
-                float(data[0:value_length]),   # First value
-                float(data[value_length:2*value_length]),  # Second value
-                float(data[2*value_length:3*value_length]),  # Third value
-                float(data[3*value_length:4*value_length]),  # Fourth value
-                float(data[4*value_length:5*value_length]),  # Fifth value
-                float(data[5*value_length:6*value_length])   # Sixth value
-            ]
-            longVal, latVal, heightVal, axVal, ayVal, azVal = values
-        break
+    global displaying
+    if ser and ser.in_waiting > 0:
+        try:
+            data = ser.readline().decode('utf-8').strip()
+            print(f"Received Data: {data}")
+            # Parse the space-separated data
+            values = list(map(float, data.split()))
+            if len(values) == 13:
+                (
+                    longVal, latVal, heightVal, axVal, ayVal, azVal,
+                    satVal, gxVal, gyVal, gzVal, mxVal, myVal, mzVal
+                ) = values
+                
+                # Update GUI variables
+                variables["Longitude"].set(f"Longitude: {longVal:.6f}")
+                variables["Latitude"].set(f"Latitude: {latVal:.6f}")
+                variables["Height"].set(f"Height: {heightVal:.6f}")
+                variables["Sat"].set(f"Sat: {satVal}")
+                variables["Ax"].set(f"Ax: {axVal:.6f}")
+                variables["Ay"].set(f"Ay: {ayVal:.6f}")
+                variables["Az"].set(f"Az: {azVal:.6f}")
+                variables["Gx"].set(f"Gx: {gxVal:.6f}")
+                variables["Gy"].set(f"Gy: {gyVal:.6f}")
+                variables["Gz"].set(f"Gz: {gzVal:.6f}")
+                variables["Mx"].set(f"Mx: {mxVal:.6f}")
+                variables["My"].set(f"My: {myVal:.6f}")
+                variables["Mz"].set(f"Mz: {mzVal:.6f}")
+            else:
+                print(f"Invalid data length: {len(values)} (expected 13)")
+        except (ValueError, UnicodeDecodeError) as e:
+            print(f"Error parsing data: {e}")
+    
     # Schedule the next update
     window.after(400, update_values)
 
-# Function to update the displayed values on the GUI
-def display_values():
-    if displaying:
-        long.set(f"Longitude: {longVal}")
-        lat.set(f"Latitude: {latVal}")
-        height.set(f"Height: {heightVal}")
-        ax.set(f"Ax: {axVal}")
-        ay.set(f"Ay: {ayVal}")
-        az.set(f"Az: {azVal}")
-    
-    # Schedule the next update of the display
-    window.after(500, display_values)
-
 # Create labels to display variable values
-label1 = tk.Label(window, textvariable=lat)
-label2 = tk.Label(window, textvariable=long)
-label3 = tk.Label(window, textvariable=height)
-label4 = tk.Label(window, textvariable=ax)
-label5 = tk.Label(window, textvariable=ay)
-label6 = tk.Label(window, textvariable=az)
+for key in variables:
+    tk.Label(window, textvariable=variables[key]).pack()
 
 # Create buttons to start and stop displaying
 start_button = tk.Button(window, text="Start", command=start_displaying)
 stop_button = tk.Button(window, text="Stop", command=stop_displaying)
 close_button = tk.Button(window, text="Close", command=close_window)
 
-# Pack the labels and buttons into the window
-label1.pack()
-label2.pack()
-label3.pack()
-label4.pack()
-label5.pack()
-label6.pack()
 start_button.pack()
 stop_button.pack()
 close_button.pack()
 
 # Start updating values and displaying values
 window.after(400, update_values)
-window.after(500, display_values)
 
 # Run the Tkinter event loop
 window.mainloop()
