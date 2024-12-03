@@ -1,4 +1,4 @@
-console=tty1 root=PARTUUID=8937eac5-02 rootfstype=ext4 fsck.repair=yes rootwait cfg80211.ieee80211_regdom=US modules-load=dwc2,g_serial
+console=tty1 root=PARTUUID=8937eac5-02 rootfstype=ext4 fsck.repair=yes rootwait modules-load=dwc2,g_serial quiet splash plymouth.ignore-serial-consoles cfg80211.ieee80211_regdom=US
 
 
 # For more options and information see
@@ -50,3 +50,5 @@ dtoverlay=dwc2,dr_mode=host
 
 [all]
 enable_uart=1
+
+dtoverlay=dw2c
