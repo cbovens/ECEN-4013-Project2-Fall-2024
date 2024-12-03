@@ -17,14 +17,14 @@ SOFT_UART_TX = 17  # GPIO pin for TX (connect to GPS RX)
 SOFT_UART_RX = 27  # GPIO pin for RX (connect to GPS TX)
 BAUD_RATE = 9600
 
-
-
 # Define the UART port and baud rate
 uart_port = '/dev/serial0'  # Default UART port on Raspberry Pi
 baud_rate = 9600            # Baud rate
+usb_port = '/dev/ttyGS0'    # Define USB port
 
 # Create a serial connection
 ser = serial.Serial(uart_port, baud_rate)
+usb = serial.Serial(usb_port, baud_rate)
 
 # Set up software serial (UART) using pigpio
 pi = pigpio.pi()
@@ -91,6 +91,7 @@ try:
         print(lat, long, height)
         message = "%8f %8f %8f %8f %8f %8f %8f %8f %8f %8f %8f %8f %8f\n" % (long or 0, lat or 0, height or 0, sat or 0, ax or 0, ay or 0, az or 0, gx or 0, gy or 0, gz or 0, mx or 0, my or 0, mz or 0)
         ser.write(message.encode('utf-8'))
+        usb.write(message.encode('utf-8'))
         long2 = "%08f\r" % (long)
         #print(type(long), type(lat), type(height), type(sat), type(ax), type(ay), type(az), type(gx), type(gy), type(gz), type(mx), type(my), type(mz))
 
