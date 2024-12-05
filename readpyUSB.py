@@ -1,14 +1,14 @@
 """
-This code recieves data via Bluetooth connectivity
+This code recieves data via USB connectivity
 Libraries needed: serial, tkinter
-PC must be paired with HC-06
-To pair on Win11, in bluetooth settings>bluetooth&devices>devices>bluetooth devices discovery>advanced
-    then pair like normal, selecting HC-06 from options
-Ensure the COM port is corect. To check, settings>bluetooth&devices>devices>more bluetooth settings>COM ports>find the one with "HC-06 'Serial Port'"
-    Put that number in the com_port variable
-Baud rate is 9600 which is hardcoded to HC-06 module
+PC must see RPi as USB Serial Device in Device Manager
+Make sure the /boot/firmware/config.txt has 'dtoverlay = dwc2' under the '[all]' line
+Make sure the /boot/firmware/cmdline.txt has 'module-load=g_serial' written directly after the 'rootwait' word (looks like 'rootwait module-load=g_serial')
+Ensure the COM port is corect. To check, run the code, it will spit out a list of active COM ports. Find the one with 'USB Serial Device' and modify the 
+    'com_port' variable to the correct number.
+Baud rate is 9600, chosen to be the same as the Bluetooth transmission speed for ease
 Data will be automatically put into GUI, provided the data is shared in the below format
-"%8f%8f%8f%8f%8f%8f" % (longitude, latitude, altitude, accelerationX, accelerationY, acceleration Z)
+"%8f %8f %8f %8f %8f %8f %8f %8f %8f %8f %8f %8f %8f\n" % longVal, latVal, heightVal, satVal, axVal, ayVal, azVal, gxVal, gyVal, gzVal, mxVal, myVal, mzVal
 Run code, and hit "Start" to begin data updating. Press "Stop" to have the data stop updating. "Close" to exit the GUI and program.
 """
 import serial
