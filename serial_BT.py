@@ -1,5 +1,6 @@
 import serial
 import time
+import re
 
 #BNO055 IMU lib
 import board
@@ -13,8 +14,8 @@ i2c = board.I2C()
 sensor = adafruit_bno055.BNO055_I2C(i2c)
 
 #GPS Setup
-SOFT_UART_TX = 17  # GPIO pin for TX (connect to GPS RX)
-SOFT_UART_RX = 27  # GPIO pin for RX (connect to GPS TX)
+SOFT_UART_TX = 27  # GPIO pin for TX (connect to GPS RX)
+SOFT_UART_RX = 17  # GPIO pin for RX (connect to GPS TX)
 BAUD_RATE = 9600
 
 
@@ -23,8 +24,11 @@ BAUD_RATE = 9600
 uart_port = '/dev/serial0'  # Default UART port on Raspberry Pi
 baud_rate = 9600            # Baud rate
 
+usb_port = '/dev/ttyGS0'  # Default UART port on Raspberry Pi
+
 # Create a serial connection
 ser = serial.Serial(uart_port, baud_rate)
+usb = serial.Serial(usb_port, baud_rate)
 
 # Set up software serial (UART) using pigpio
 pi = pigpio.pi()
@@ -56,26 +60,30 @@ mx= 0
 my= 0
 mz= 0
 try:
+   
     while (True):
+        print("gps test")
         (count, data) = pi.bb_serial_read(SOFT_UART_RX)
+        print(count)
         if count > 0:
             # Decode and process GPS data (NMEA sentences)
             nmea_data = data.decode('ascii', errors='ignore').splitlines()
             for line in nmea_data:
-
                 if line.startswith("$GPGGA"):  # Parse GGA sentences
                     parts = line.split(',')
-                    #print(parts)
                     if len(parts) >= 10:
                         lat = nmea_to_decimal(parts[2], parts[3])
                         long = nmea_to_decimal(parts[4], parts[5])
                         height = float(parts[9]) if parts[9] else 0
+                        lat = 0 if lat == 'No Data' else lat
+                        long = 0 if long == 'No Data' else long        
 
                 elif line.startswith("$GPGSV"):  # Parse GSV sentences for satellite data
                     parts = line.split(',')
-                    #print(parts)
                     if len(parts) > 3:
-                        sat = int(parts[3]) if parts[3] != '00*79' else 0 # Update the number of locked satellites
+                        old_sat = sat
+                        sat = re.sub(r"\D", "", parts[3])
+                        sat = int(sat) if int(sat) <= 20 else old_sat
         ax = sensor.acceleration[0]
         ay = sensor.acceleration[1]
         az = sensor.acceleration[2]
@@ -89,9 +97,12 @@ try:
         # Message syntax each being 8 bytes:
         #   Longitude, Latitiude, Altitude, AccX, AccY, AccZ
         print(lat, long, height)
+        #print(type(long), type(lat), type(height), type(sat), type(ax), type(ay), type(az), type(gx), type(gy), type(gz), type(mx), type(my), type(mz))
         message = "%8f %8f %8f %8f %8f %8f %8f %8f %8f %8f %8f %8f %8f\n" % (long or 0, lat or 0, height or 0, sat or 0, ax or 0, ay or 0, az or 0, gx or 0, gy or 0, gz or 0, mx or 0, my or 0, mz or 0)
         ser.write(message.encode('utf-8'))
-        long2 = "%08f\r" % (long)
+        print("after long")
+        usb.write(message.encode('utf-8'))
+        print("After usb")
         #print(type(long), type(lat), type(height), type(sat), type(ax), type(ay), type(az), type(gx), type(gy), type(gz), type(mx), type(my), type(mz))
 
 # Close the serial connection
