@@ -9,6 +9,10 @@ import adafruit_bno055
 #Pigpio import (for GPS)
 import pigpio
 
+#CSV import
+import csv
+from collections import deque
+
 #IMU Setup
 i2c = board.I2C()
 sensor = adafruit_bno055.BNO055_I2C(i2c)
@@ -17,8 +21,6 @@ sensor = adafruit_bno055.BNO055_I2C(i2c)
 SOFT_UART_TX = 27  # GPIO pin for TX (connect to GPS RX)
 SOFT_UART_RX = 17  # GPIO pin for RX (connect to GPS TX)
 BAUD_RATE = 9600
-
-
 
 # Define the UART port and baud rate
 uart_port = '/dev/serial0'  # Default UART port on Raspberry Pi
@@ -33,6 +35,23 @@ usb = serial.Serial(usb_port, baud_rate)
 # Set up software serial (UART) using pigpio
 pi = pigpio.pi()
 pi.bb_serial_read_open(SOFT_UART_RX, BAUD_RATE)  # Open RX pin for reading
+
+# Initialize a deque to store the last 50 data points
+buffer_size = 50
+data_buffer = deque(maxlen=buffer_size)
+
+# Define the CSV file name
+csv_file = 'sensor_data.csv'
+
+# Write the CSV header if the file doesn't exist
+try:
+    with open(csv_file, 'x', newline='') as f:
+        writer = csv.writer(f)
+        header = ["Timestamp", "Longitude", "Latitude", "Altitude", "Satellites", "AccX", "AccY", "AccZ", "GyroX", "GyroY", "GyroZ", "MagX", "MagY", "MagZ"]
+        writer.writerow(header)
+except FileExistsError:
+    pass  # File already exists, no need to write the header again
+
 
 def nmea_to_decimal(coord, direction):
     if coord == '':
@@ -94,6 +113,17 @@ try:
         my = sensor.magnetic[1]
         mz = sensor.magnetic[2]
         time.sleep(0.5)
+        
+        # Append the new data point to the deque
+        data_point = [timestamp, long or 0, lat or 0, height or 0, sat or 0, ax or 0, ay or 0, az or 0, gx or 0, gy or 0, gz or 0, mx or 0, my or 0, mz or 0]
+        data_buffer.append(data_point)
+
+        # Write the data point to the CSV file
+        with open(csv_file, 'w', newline='') as f:
+            writer = csv.writer(f)
+            writer.writerow(header)  # Write the header again
+            writer.writerows(data_buffer)  # Write the contents of the deque
+            
         # Message syntax each being 8 bytes:
         #   Longitude, Latitiude, Altitude, AccX, AccY, AccZ
         print(lat, long, height)
